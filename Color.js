@@ -21,7 +21,7 @@ class Color {
         if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255 || a < 0 || a > 255) {
             throw new Error('Color components must be in range 0-255');
         }
-        
+
         if (isPremultiplied) {
             this._r = Math.round(r);
             this._g = Math.round(g);
@@ -36,46 +36,36 @@ class Color {
             this._a = Math.round(a);
         }
     }
-    
-    
-    /**
-     * Create transparent black color
-     * @returns {Color} Transparent color
-     */
-    static transparent() {
-        return new Color(0, 0, 0, 0);
-    }
-    
-    
+
     // Getters for premultiplied components (internal storage format)
     get premultipliedR() { return this._r; }
     get premultipliedG() { return this._g; }
     get premultipliedB() { return this._b; }
     get premultipliedA() { return this._a; }
-    
+
     // Getters for non-premultiplied components (API-friendly)
     get r() {
         if (this._a === 0) return 0;
         if (this._a === 255) return this._r;
         return Math.round((this._r * 255) / this._a);
     }
-    
+
     get g() {
         if (this._a === 0) return 0;
         if (this._a === 255) return this._g;
         return Math.round((this._g * 255) / this._a);
     }
-    
+
     get b() {
         if (this._a === 0) return 0;
         if (this._a === 255) return this._b;
         return Math.round((this._b * 255) / this._a);
     }
-    
+
     get a() {
         return this._a;
     }
-    
+
     /**
      * Get non-premultiplied RGBA array
      * @returns {number[]} [r, g, b, a] array
@@ -83,7 +73,7 @@ class Color {
     toRGBA() {
         return [this.r, this.g, this.b, this.a];
     }
-    
+
     /**
      * Get premultiplied RGBA array (internal storage format)
      * @returns {number[]} [r, g, b, a] array with RGB premultiplied
@@ -91,7 +81,7 @@ class Color {
     toPremultipliedRGBA() {
         return [this._r, this._g, this._b, this._a];
     }
-    
+
     /**
      * Get alpha as normalized value (0-1)
      * @returns {number} Alpha in 0-1 range
@@ -99,7 +89,7 @@ class Color {
     get normalizedAlpha() {
         return this._a / 255;
     }
-    
+
     /**
      * Check if color is fully transparent
      * @returns {boolean} True if alpha is 0
@@ -107,7 +97,7 @@ class Color {
     get isTransparent() {
         return this._a === 0;
     }
-    
+
     /**
      * Check if color is fully opaque
      * @returns {boolean} True if alpha is 255
@@ -115,7 +105,7 @@ class Color {
     get isOpaque() {
         return this._a === 255;
     }
-    
+
     /**
      * Apply global alpha to this color (immutable operation)
      * @param {number} globalAlpha - Alpha multiplier (0-1)
@@ -125,17 +115,17 @@ class Color {
         if (globalAlpha < 0 || globalAlpha > 1) {
             throw new Error('Global alpha must be in range 0-1');
         }
-        
+
         // Work with non-premultiplied values to apply global alpha correctly
         const nonPremultR = this.r;
         const nonPremultG = this.g;
         const nonPremultB = this.b;
         const nonPremultA = this.a;
-        
+
         const newAlpha = Math.round(nonPremultA * globalAlpha);
         return new Color(nonPremultR, nonPremultG, nonPremultB, newAlpha, false);
     }
-    
+
     /**
      * Blend this color over another color using source-over composition
      * @param {Color} background - Background color to blend over
@@ -146,24 +136,24 @@ class Color {
             // Source is opaque - return source
             return this;
         }
-        
+
         if (this._a === 0) {
             // Source is transparent - return background
             return background;
         }
-        
+
         // Standard premultiplied alpha blending
         const srcAlpha = this.normalizedAlpha;
         const invSrcAlpha = 1 - srcAlpha;
-        
+
         const newR = Math.round(this._r + background._r * invSrcAlpha);
         const newG = Math.round(this._g + background._g * invSrcAlpha);
         const newB = Math.round(this._b + background._b * invSrcAlpha);
         const newA = Math.round(this._a + background._a * invSrcAlpha);
-        
+
         return new Color(newR, newG, newB, newA, true);
     }
-    
+
     /**
      * Convert color for BMP output (non-premultiplied RGB)
      * @returns {Object} {r, g, b} object for BMP encoding
@@ -175,7 +165,16 @@ class Color {
             b: this.b
         };
     }
-    
+
+    /**
+     * Convert to CSS rgba() string
+     * @returns {string} CSS rgba() format string
+     */
+    toCSS() {
+        const alpha = (this.a / 255).toFixed(3).replace(/\.?0+$/, '');
+        return `rgba(${this.r}, ${this.g}, ${this.b}, ${alpha})`;
+    }
+
     /**
      * String representation for debugging
      * @returns {string} Color description
@@ -183,7 +182,7 @@ class Color {
     toString() {
         return `Color(${this.r}, ${this.g}, ${this.b}, ${this.a})`;
     }
-    
+
     /**
      * Check equality with another Color
      * @param {Color} other - Color to compare with
@@ -191,9 +190,29 @@ class Color {
      */
     equals(other) {
         return other instanceof Color &&
-               this._r === other._r &&
-               this._g === other._g &&
-               this._b === other._b &&
-               this._a === other._a;
+            this._r === other._r &&
+            this._g === other._g &&
+            this._b === other._b &&
+            this._a === other._a;
     }
 }
+
+// Static constant: transparent black
+Color.transparent = new Color(0, 0, 0, 0);
+
+// Static constant: opaque black
+Color.black = new Color(0, 0, 0, 255);
+
+/**
+ * Create Color from CSS string using provided parser
+ * @param {string} cssString - CSS color string
+ * @param {ColorParser} parser - ColorParser instance
+ * @returns {Color} New Color instance
+ */
+Color.fromCSS = function (cssString, parser) {
+    if (!cssString || typeof cssString !== 'string') {
+        throw new Error("Invalid color format: must be a string");
+    }
+    const parsed = parser.parse(cssString);
+    return new Color(parsed.r, parsed.g, parsed.b, parsed.a, false);
+};
