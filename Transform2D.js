@@ -85,12 +85,12 @@ class Transform2D {
         }
         
         return new Transform2D([
-            this.a * other.a + this.b * other.c,
-            this.a * other.b + this.b * other.d,
-            this.c * other.a + this.d * other.c,
-            this.c * other.b + this.d * other.d,
-            this.e * other.a + this.f * other.c + other.e,
-            this.e * other.b + this.f * other.d + other.f
+            this.a * other.a + this.c * other.b,
+            this.b * other.a + this.d * other.b,
+            this.a * other.c + this.c * other.d,
+            this.b * other.c + this.d * other.d,
+            this.a * other.e + this.c * other.f + this.e,
+            this.b * other.e + this.d * other.f + this.f
         ]);
     }
 
@@ -196,7 +196,42 @@ class Transform2D {
     get determinant() {
         return this.a * this.d - this.b * this.c;
     }
-    
+
+    /**
+     * Get the rotation angle from the transformation matrix
+     * @returns {number} Rotation angle in radians
+     */
+    get rotationAngle() {
+        return Math.atan2(-this.c, this.a);
+    }
+
+    /**
+     * Get the X scale factor from the transformation matrix
+     * @returns {number} Scale factor along X axis
+     */
+    get scaleX() {
+        return Math.sqrt(this.a * this.a + this.b * this.b);
+    }
+
+    /**
+     * Get the Y scale factor from the transformation matrix
+     * @returns {number} Scale factor along Y axis
+     */
+    get scaleY() {
+        return Math.sqrt(this.c * this.c + this.d * this.d);
+    }
+
+    /**
+     * Calculate the scaled line width based on the current transformation
+     * Uses the geometric mean of scale factors, clamped to avoid zero
+     * @param {number} baseWidth - The base line width before transformation
+     * @returns {number} The scaled line width
+     */
+    getScaledLineWidth(baseWidth) {
+        const scale = Math.max(Math.sqrt(this.scaleX * this.scaleY), 0.0001);
+        return baseWidth * scale;
+    }
+
     /**
      * Check equality with another transform
      * @param {Transform2D} other - Transform to compare
